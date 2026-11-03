@@ -79,147 +79,50 @@ body {
 .tabular { font-variant-numeric: tabular-nums; }
 
 /* ═══════════════════════════════════════════════════════════════
- * TYPOGRAPHY SYSTEM v2
+ * TYPOGRAPHY SYSTEM
  * ═══════════════════════════════════════════════════════════════ */
 
-.text-page-title {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #064e3b;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
-}
-@media (min-width: 1024px) {
-  .text-page-title { font-size: 1.875rem; }
-}
+.text-page-title { font-size: 1.5rem; font-weight: 900; color: #064e3b; letter-spacing: -0.025em; line-height: 1.15; }
+@media (min-width: 1024px) { .text-page-title { font-size: 1.875rem; } }
 
-.text-section-title {
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: #064e3b;
-  line-height: 1.2;
-}
-@media (min-width: 1024px) {
-  .text-section-title { font-size: 1.375rem; }
-}
+.text-section-title { font-size: 1.25rem; font-weight: 900; color: #064e3b; line-height: 1.2; }
+@media (min-width: 1024px) { .text-section-title { font-size: 1.375rem; } }
 
-.text-card-title {
-  font-size: 1.0625rem;
-  font-weight: 900;
-  color: #064e3b;
-  line-height: 1.2;
-}
-@media (min-width: 1024px) {
-  .text-card-title { font-size: 1.1875rem; }
-}
+.text-card-title { font-size: 1.0625rem; font-weight: 900; color: #064e3b; line-height: 1.2; }
+@media (min-width: 1024px) { .text-card-title { font-size: 1.1875rem; } }
 
-.text-number-hero {
-  font-size: 1.75rem;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  text-shadow: 0 2px 10px rgba(6, 95, 70, 0.25);
-}
-@media (min-width: 1024px) {
-  .text-number-hero { font-size: 2rem; }
-}
+.text-number-hero { font-size: 1.75rem; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.02em; text-shadow: 0 2px 10px rgba(6, 95, 70, 0.25); }
+@media (min-width: 1024px) { .text-number-hero { font-size: 2rem; } }
 
-.text-number-lg {
-  font-size: 1.5rem;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  letter-spacing: -0.01em;
-}
-@media (min-width: 1024px) {
-  .text-number-lg { font-size: 1.75rem; }
-}
+.text-number-lg { font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.01em; }
+@media (min-width: 1024px) { .text-number-lg { font-size: 1.75rem; } }
 
-.text-number {
-  font-size: 1.25rem;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-
-.text-number-sm {
-  font-size: 1rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-
-.text-number-highlight {
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 6px rgba(6, 95, 70, 0.35);
-}
-
-.text-body {
-  font-size: 1rem;
-  color: #064e3b;
-  line-height: 1.6;
-}
-
-.text-label {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: #047857;
-}
-
-.text-hint {
-  font-size: 0.8125rem;
-  color: #10b981;
-  line-height: 1.3;
-}
+.text-number { font-size: 1.25rem; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.text-number-sm { font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.text-number-highlight { font-weight: 900; font-variant-numeric: tabular-nums; text-shadow: 0 1px 6px rgba(6, 95, 70, 0.35); }
+.text-body { font-size: 1rem; color: #064e3b; line-height: 1.6; }
+.text-label { font-size: 0.9375rem; font-weight: 700; color: #047857; }
+.text-hint { font-size: 0.8125rem; color: #10b981; line-height: 1.3; }
 
 .input-base {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #064e3b;
-  background-color: #ffffff;
-  border: 2px solid #a7f3d0;                    /* ⭐ ขอบเขียวอ่อนชัด */
-  border-radius: 0.75rem;
-  transition: all 0.2s ease;
-  outline: none;
-  box-shadow: 0 1px 2px rgba(6, 95, 70, 0.05); /* ⭐ เงาเบาๆ */
+  width: 100%; padding: 0.75rem 1rem; font-size: 1rem; font-weight: 600;
+  color: #064e3b; background-color: rgba(236, 253, 245, 0.5);
+  border: 2px solid transparent; border-radius: 0.75rem; transition: all 0.2s ease; outline: none;
 }
-.input-base:focus {
-  border-color: #059669;
-  box-shadow: 0 0 0 4px #d1fae5;
-}
-.input-base:hover:not(:focus) {
-  border-color: #6ee7b7;                        /* ⭐ hover → เข้มขึ้น */
-}
-.input-base::placeholder {
-  color: #a7f3d0;
-  font-weight: 500;
-}
-
+.input-base:focus { background-color: #ffffff; border-color: #059669; box-shadow: 0 0 0 4px #d1fae5; }
+.input-base::placeholder { color: #6ee7b7; }
 .input-readonly {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #065f46;
-  background-color: #ecfdf5;
-  border: 2px solid #a7f3d0;
-  border-radius: 0.75rem;
-  cursor: not-allowed;
+  width: 100%; padding: 0.75rem 1rem; font-size: 1rem; font-weight: 700;
+  color: #065f46; background-color: #ecfdf5; border: 2px solid #a7f3d0;
+  border-radius: 0.75rem; cursor: not-allowed;
 }
-
 .text-gradient-emerald {
   background: linear-gradient(135deg, #047857 0%, #10b981 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 
 /* ═══════════════════════════════════════════════════════════════
- * PRINT STYLES
+ * PRINT STYLES (แก้ไขใหม่ให้เต็มหน้ากระดาษ)
  * ═══════════════════════════════════════════════════════════════ */
 @media screen {
   .print-stats-only,
@@ -231,14 +134,15 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 12mm;
+    margin: 12mm;
   }
 
-  /* ⭐⭐ ซ่อนทุกอย่าง แล้วโชว์เฉพาะ report ที่ active ⭐⭐ */
+  /* ซ่อนทุกอย่างในหน้าเว็บหลัก */
   body * {
     visibility: hidden;
   }
 
+  /* แสดงเฉพาะรายงานที่กำลังพิมพ์ */
   body.printing-stats .print-stats-only,
   body.printing-stats .print-stats-only *,
   body.printing-calc .print-calc-only,
@@ -246,270 +150,46 @@ body {
     visibility: visible;
   }
 
+  /* รีเซ็ต Layout ของรายงานให้เต็มหน้ากระดาษ */
   body.printing-stats .print-stats-only,
   body.printing-calc .print-calc-only {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
-  }
-
-  /* ─── Reset ─── */
-  html, body {
-    background: #fff !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    color: #000;
-  }
-
-  .no-print, header, nav, button { display: none !important; }
-
-  body > div,
-  body > div > div,
-  body > div > div > div,
-  main,
-  main > div,
-  main > div > div {
-    display: block !important;
+    width: 100% !important;
     max-width: 100% !important;
-    padding: 0 !important;
     margin: 0 !important;
-    gap: 0 !important;
-    grid-template-columns: 1fr !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    display: block !important;
   }
 
-  /* ─── Base ─── */
-  *, *::before, *::after {
-    animation: none !important;
-    transition: none !important;
-    box-shadow: none !important;
-    transform: none !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    text-shadow: none !important;
+  /* ล้างค่าขอบของ Container หลักที่อาจทำให้เนื้อหาถูกบีบ */
+  html, body, main, main > div, div {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
   }
 
-  .print-report-root {
-    font-family: 'Noto Sans Thai Looped', sans-serif;
-    font-size: 12px;
-    line-height: 1.45;
-    color: #1a202c;
+  /* ปรับแต่งตารางไม่ให้ล้นหรือขาด */
+  table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+  th, td {
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+  }
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
-  /* ─── Header — กระชับ ─── */
-  .print-header {
-    text-align: center;
-    margin-bottom: 8px;
+  /* ซ่อน UI ที่ไม่ต้องพิมพ์ */
+  .no-print, header, nav, button, aside { 
+    display: none !important; 
   }
-  .print-header img {
-    width: 52px !important;
-    height: 52px !important;
-    margin: 0 auto 4px !important;
-  }
-  .print-header .org {
-    font-size: 14px;
-    font-weight: 800;
-    color: #065f46;
-  }
-  .print-header .sub {
-    font-size: 11px;
-    color: #475569;
-  }
-  .print-header .title-box {
-    margin-top: 6px;
-    border-top: 1.5px solid #065f46;
-    border-bottom: 1.5px solid #065f46;
-    padding: 5px 24px;
-    display: inline-block;
-  }
-  .print-header .title {
-    font-size: 15px;
-    font-weight: 900;
-    color: #065f46;
-    letter-spacing: 0.4px;
-  }
-
-  /* ─── Section ─── */
-  .print-section {
-    margin-bottom: 10px;
-  }
-  .print-section-title {
-    font-size: 12.5px;
-    font-weight: 800;
-    color: #065f46;
-    margin: 12px 0 5px;
-    padding-bottom: 3px;
-    border-bottom: 1px solid #a7f3d0;
-    page-break-after: avoid;
-    break-after: avoid;
-  }
-
-  /* ─── Info table ─── */
-  .print-info {
-    width: 100%;
-    font-size: 11.5px;
-    margin-bottom: 6px;
-  }
-  .print-info td {
-    padding: 1.5px 0;
-    vertical-align: top;
-  }
-  .print-info .label {
-    width: 150px;
-    color: #475569;
-  }
-  .print-info .colon {
-    width: 10px;
-    color: #94a3b8;
-  }
-  .print-info .value {
-    font-weight: 700;
-    color: #0f172a;
-  }
-
-  /* ⭐ Hero — กระชับมาก */
-  .print-hero {
-    border: 1.5px solid #065f46;
-    background: #f0fdf4 !important;
-    padding: 8px 12px;
-    text-align: center;
-    margin: 6px 0 10px;
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-  .print-hero-label {
-    font-size: 11px;
-    color: #334155;
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-  .print-hero-value {
-    font-size: 28px;
-    font-weight: 900;
-    color: #065f46;
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-  }
-  .print-hero-unit {
-    font-size: 12px;
-    font-weight: 700;
-    color: #065f46;
-    margin-top: 1px;
-  }
-  .print-hero-sub {
-    font-size: 10.5px;
-    color: #334155;
-    margin-top: 4px;
-  }
-
-  /* ─── Table ─── */
-  .print-table {
-    width: 100%;
-    border-collapse: collapse;
-    page-break-inside: auto;
-    break-inside: auto;
-  }
-  .print-table thead {
-    display: table-header-group;
-  }
-  .print-table tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-  .print-table th {
-    background: #ecfdf5 !important;
-    color: #064e3b !important;
-    font-weight: 700;
-    padding: 4px 6px;
-    border: 1px solid #065f46;
-    text-align: center;
-    font-size: 10.5px;
-  }
-  .print-table td {
-    padding: 3.5px 6px;
-    border: 1px solid #a7f3d0;
-    font-size: 11px;
-    vertical-align: top;
-  }
-  .print-table tr:nth-child(even) td {
-    background: #f8fdfa !important;
-  }
-
-  /* ─── Formula ─── */
-  .print-formula {
-    background: #f8fdfa !important;
-    border-left: 3px solid #10b981;
-    padding: 4px 8px;
-    margin: 3px 0;
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: #065f46;
-    font-weight: 600;
-  }
-
-  /* ─── Signature ─── */
-  .print-signatures {
-    margin-top: 24px;
-    padding-top: 8px;
-    border-top: 1px dashed #94a3b8;
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-  .print-signature-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    text-align: center;
-    font-size: 11px;
-  }
-  .print-signature-line {
-    margin-bottom: 34px;
-    font-size: 11px;
-  }
-
-  /* ─── Footer ─── */
-  .print-footer {
-    margin-top: 12px;
-    padding-top: 6px;
-    text-align: center;
-    font-size: 9px;
-    color: #64748b;
-    border-top: 0.5px solid #cbd5e0;
-  }
-
-  /* ─── Compact lists ─── */
-  .print-list {
-    font-size: 11px;
-    line-height: 1.55;
-    padding-left: 12px;
-  }
-  .print-list-item {
-    margin-bottom: 1px;
-  }
-
-  /* Prevent orphan headings */
-  h2, h3, h4 { page-break-after: avoid; break-after: avoid; }
-}
-
-/* ⭐ กัน overflow บนมือถือ */
-html, body {
-  overflow-x: hidden;
-  max-width: 100vw;
-}
-
-/* inputs ยอม shrink เสมอ */
-input[type="number"],
-input[type="text"],
-input[type="date"],
-select {
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* ปุ่มยอม wrap ได้ */
-button {
-  max-width: 100%;
 }

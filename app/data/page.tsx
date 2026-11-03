@@ -112,6 +112,20 @@ function DataPageInner() {
     ? SITE_TYPES.find(t => t.id === selectedSite.type)
     : null;
 
+  // ⭐ 1. เพิ่ม useEffect นี้เพื่อให้ Dropdown เปลี่ยนตามที่พิมพ์ค้นหา
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return;
+    
+    // ถ้าพิมพ์คำค้นหา แล้วไปตรงกับชื่อสถานที่ไหน ให้เปลี่ยน dropdown ไปที่นั่นทันที
+    const matchedSite = sites.find(s => s.name.toLowerCase().includes(q));
+    if (matchedSite && matchedSite.id !== siteId) {
+      setSiteId(matchedSite.id);
+    }
+  }, [searchQuery, sites, siteId]);
+
+
+  // ⭐ 2. แก้ Logic การกรองข้อมูลให้ยึดตามสถานที่ที่เลือกใน Dropdown เป็นหลัก
   const filteredRecords = useMemo(() => {
     if (!selectedSite) return [];
     const from = new Date(fromYear, fromMonth, 1);
@@ -120,17 +134,23 @@ function DataPageInner() {
 
     return records
       .filter(r => {
+        // กรองเฉพาะข้อมูลของสถานที่ที่ถูกเลือกอยู่ตอนนี้เท่านั้น
         if (r.site_id !== selectedSite.id) return false;
+
         const d = new Date(r.record_date);
         if (d < from || d > to) return false;
 
         if (query) {
           const userName = r.user_name?.toLowerCase() || '';
           const note = r.note?.toLowerCase() || '';
-          if (!userName.includes(query) && !note.includes(query)) {
+          const siteName = selectedSite.name.toLowerCase();
+          
+          // ถ้าค้นหาแล้ว ไม่เจอทั้งชื่อคน, หมายเหตุ, หรือชื่อสถานที่ ให้กรองออก
+          if (!siteName.includes(query) && !userName.includes(query) && !note.includes(query)) {
             return false;
           }
         }
+
         return true;
       })
       .sort(
@@ -261,12 +281,7 @@ function DataPageInner() {
         {/* SIDEBAR */}
         <aside className="no-print lg:col-span-4 xl:col-span-3 space-y-3 lg:space-y-4 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
           
-          {/* ⭐ ช่องค้นหา */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100/60"
-          >
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100/60">
             <label className="flex items-center gap-1.5 text-label mb-2">
               <Search className="w-3.5 h-3.5" /> ค้นหาข้อมูล
             </label>
@@ -275,7 +290,7 @@ function DataPageInner() {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="ค้นหาชื่อ, หมายเหตุ..."
+                placeholder="ค้นหาสถานที่, ชื่อ..."
                 className="w-full pl-10 pr-10 py-2.5 text-base bg-emerald-50/50 border-2 border-emerald-100 rounded-xl focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-emerald-900"
               />
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
@@ -290,13 +305,7 @@ function DataPageInner() {
             </div>
           </motion.div>
 
-          {/* Settings card */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100/60 space-y-3"
-          >
-            {/* Site */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100/60 space-y-3">
             {sitesLoading ? (
               <div className="h-12 bg-emerald-50 rounded-xl animate-pulse" />
             ) : sites.length === 0 ? (
@@ -312,23 +321,19 @@ function DataPageInner() {
                 <select
                   value={siteId}
                   onChange={e => setSiteId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-base font-bold bg-emerald-50/50 border-2 border-emerald-100 rounded-xl focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-emerald-900"
+                  className="w-full px-3.5 py-2.5 text-base font-bold bg-emerald-50/50 border-2 border-emerald-100 rounded-xl focus:outline-none focus:bg-white focus:border-emerald-600 transition-all text-emerald-900"
                 >
                   {sites.map(s => {
                     const t = SITE_TYPES.find(st => st.id === s.type);
                     return <option key={s.id} value={s.id}>{t?.icon || '📍'} {s.name}</option>;
                   })}
                 </select>
-                <button
-                  onClick={() => setShowManager(true)}
-                  className="w-full mt-2 text-xs font-bold text-emerald-700 px-2 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors"
-                >
+                <button onClick={() => setShowManager(true)} className="w-full mt-2 text-xs font-bold text-emerald-700 px-2 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors">
                   ⚙️ จัดการสถานที่
                 </button>
               </div>
             )}
 
-            {/* Range */}
             <div>
               <label className="flex items-center gap-1.5 text-label mb-1.5">
                 <Calendar className="w-3.5 h-3.5" /> ช่วงเวลา
@@ -345,18 +350,10 @@ function DataPageInner() {
                         {which === 'from' ? 'ตั้งแต่' : 'ถึง'}
                       </div>
                       <div className="flex gap-1.5">
-                        <select
-                          value={m}
-                          onChange={e => setM(parseInt(e.target.value))}
-                          className="flex-1 px-2.5 py-2 text-sm font-bold bg-white rounded-lg border border-emerald-100 focus:outline-none focus:border-emerald-600"
-                        >
+                        <select value={m} onChange={e => setM(parseInt(e.target.value))} className="flex-1 px-2.5 py-2 text-sm font-bold bg-white rounded-lg border border-emerald-100 focus:outline-none focus:border-emerald-600">
                           {MONTHS_TH_SHORT.map((mn, i) => <option key={i} value={i}>{mn}</option>)}
                         </select>
-                        <select
-                          value={y}
-                          onChange={e => setY(parseInt(e.target.value))}
-                          className="w-20 px-2 py-2 text-sm font-bold bg-white rounded-lg border border-emerald-100 focus:outline-none focus:border-emerald-600"
-                        >
+                        <select value={y} onChange={e => setY(parseInt(e.target.value))} className="w-20 px-2 py-2 text-sm font-bold bg-white rounded-lg border border-emerald-100 focus:outline-none focus:border-emerald-600">
                           {[2023, 2024, 2025, 2026, 2027].map(yr => <option key={yr} value={yr}>{yr + 543}</option>)}
                         </select>
                       </div>
@@ -369,7 +366,6 @@ function DataPageInner() {
               </p>
             </div>
 
-            {/* Advanced */}
             <details className="group">
               <summary className="cursor-pointer text-xs font-bold text-emerald-700 flex items-center gap-1 select-none py-1.5">
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
@@ -391,14 +387,9 @@ function DataPageInner() {
           </motion.div>
         </aside>
 
-        {/* MAIN */}
         <section className="lg:col-span-8 xl:col-span-9 space-y-4">
           {viewMode === 'stats' && stats && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="no-print space-y-4"
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="no-print space-y-4">
               <div className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60">
                 <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-emerald-100">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
@@ -406,9 +397,7 @@ function DataPageInner() {
                   </div>
                   <div>
                     <h3 className="text-section-title">สถิติข้อมูล</h3>
-                    <p className="text-hint mt-0.5">
-                      จากการบันทึก {stats.count} ครั้ง ในช่วงที่เลือก
-                    </p>
+                    <p className="text-hint mt-0.5">จากการบันทึก {stats.count} ครั้ง ในช่วงที่เลือก</p>
                   </div>
                 </div>
 
@@ -422,88 +411,41 @@ function DataPageInner() {
                 </div>
 
                 <div className="mb-4 p-4 rounded-2xl bg-emerald-50/50">
-                  <div className="text-label mb-3 flex items-center gap-2">
-                    <LineIcon className="w-4 h-4" /> การกระจายตัว (Quartile)
-                  </div>
+                  <div className="text-label mb-3 flex items-center gap-2"><LineIcon className="w-4 h-4" /> การกระจายตัว (Quartile)</div>
                   <div className="flex items-center justify-between text-center">
-                    <div>
-                      <div className="text-xs text-emerald-600 font-bold">ต่ำสุด</div>
-                      <div className="text-number-sm text-emerald-900 mt-1">{stats.min.toFixed(1)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-emerald-600 font-bold">Q1</div>
-                      <div className="text-number-sm text-emerald-900 mt-1">{stats.q1.toFixed(1)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-emerald-600 font-bold">มัธยฐาน</div>
-                      <div className="text-number-sm text-emerald-700 mt-1">{stats.median.toFixed(1)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-emerald-600 font-bold">Q3</div>
-                      <div className="text-number-sm text-emerald-900 mt-1">{stats.q3.toFixed(1)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-emerald-600 font-bold">สูงสุด</div>
-                      <div className="text-number-sm text-emerald-900 mt-1">{stats.max.toFixed(1)}</div>
-                    </div>
+                    <div><div className="text-xs text-emerald-600 font-bold">ต่ำสุด</div><div className="text-number-sm text-emerald-900 mt-1">{stats.min.toFixed(1)}</div></div>
+                    <div><div className="text-xs text-emerald-600 font-bold">Q1</div><div className="text-number-sm text-emerald-900 mt-1">{stats.q1.toFixed(1)}</div></div>
+                    <div><div className="text-xs text-emerald-600 font-bold">มัธยฐาน</div><div className="text-number-sm text-emerald-700 mt-1">{stats.median.toFixed(1)}</div></div>
+                    <div><div className="text-xs text-emerald-600 font-bold">Q3</div><div className="text-number-sm text-emerald-900 mt-1">{stats.q3.toFixed(1)}</div></div>
+                    <div><div className="text-xs text-emerald-600 font-bold">สูงสุด</div><div className="text-number-sm text-emerald-900 mt-1">{stats.max.toFixed(1)}</div></div>
                   </div>
                 </div>
 
                 <div className="mb-4 p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-100">
                   <div className="text-label mb-3">แนวโน้ม (ครึ่งแรก vs ครึ่งหลัง)</div>
                   <div className="flex items-center justify-between">
-                    <div className="text-center flex-1">
-                      <div className="text-xs text-emerald-600 font-bold">ครึ่งแรก</div>
-                      <div className="text-number text-emerald-900 mt-1">{stats.firstAvg.toFixed(1)} กก.</div>
-                    </div>
-                    <div className="text-3xl">
-                      {stats.trendPct > 0 ? '📈' : stats.trendPct < 0 ? '📉' : '➡️'}
-                    </div>
-                    <div className="text-center flex-1">
-                      <div className="text-xs text-emerald-600 font-bold">ครึ่งหลัง</div>
-                      <div className="text-number text-emerald-900 mt-1">{stats.secondAvg.toFixed(1)} กก.</div>
-                    </div>
+                    <div className="text-center flex-1"><div className="text-xs text-emerald-600 font-bold">ครึ่งแรก</div><div className="text-number text-emerald-900 mt-1">{stats.firstAvg.toFixed(1)} กก.</div></div>
+                    <div className="text-3xl">{stats.trendPct > 0 ? '📈' : stats.trendPct < 0 ? '📉' : '➡️'}</div>
+                    <div className="text-center flex-1"><div className="text-xs text-emerald-600 font-bold">ครึ่งหลัง</div><div className="text-number text-emerald-900 mt-1">{stats.secondAvg.toFixed(1)} กก.</div></div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200">
-                  <div className="text-center">
-                    <div className="text-xs font-bold text-emerald-700 mb-1">ปริมาตรรวม</div>
-                    <div className="text-number text-emerald-800">
-                      {stats.totalM3.toFixed(3)}
-                      <span className="text-sm ml-1">ม³</span>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs font-bold text-emerald-700 mb-1">ความหนาแน่นเฉลี่ย</div>
-                    <div className="text-number text-emerald-800">
-                      {stats.avgDensity.toFixed(1)}
-                      <span className="text-sm ml-1">กก./ม³</span>
-                    </div>
-                  </div>
+                  <div className="text-center"><div className="text-xs font-bold text-emerald-700 mb-1">ปริมาตรรวม</div><div className="text-number text-emerald-800">{stats.totalM3.toFixed(3)}<span className="text-sm ml-1">ม³</span></div></div>
+                  <div className="text-center"><div className="text-xs font-bold text-emerald-700 mb-1">ความหนาแน่นเฉลี่ย</div><div className="text-number text-emerald-800">{stats.avgDensity.toFixed(1)}<span className="text-sm ml-1">กก./ม³</span></div></div>
                 </div>
               </div>
-
               <MonthComparison records={filteredRecords} siteId={selectedSite?.id || ''} />
             </motion.div>
           )}
 
           {viewMode === 'collectors' && selectedSite && (
-            <div className="no-print">
-              <CollectorReport records={filteredRecords} sites={sites} />
-            </div>
+            <div className="no-print"><CollectorReport records={filteredRecords} sites={sites} /></div>
           )}
 
           {viewMode === 'calc' && result && filteredRecords.length > 0 && (
             <div className="no-print">
-              <CalcView
-                siteName={selectedSite?.name || ''}
-                siteType={siteType?.label || ''}
-                fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`}
-                toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`}
-                result={result}
-                records={filteredRecords}
-              />
+              <CalcView siteName={selectedSite?.name || ''} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} result={result} records={filteredRecords} />
             </div>
           )}
 
@@ -517,25 +459,11 @@ function DataPageInner() {
         </section>
       </div>
 
-      {/* Print reports (ซ่อนบนจอ) */}
       {result && selectedSite && (
-        <CalcReport
-          siteName={selectedSite.name}
-          siteType={siteType?.label || ''}
-          fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`}
-          toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`}
-          result={result}
-          records={filteredRecords}
-        />
+        <CalcReport siteName={selectedSite.name} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} result={result} records={filteredRecords} />
       )}
       {stats && selectedSite && (
-        <StatsReport
-          siteName={selectedSite.name}
-          siteType={siteType?.label || ''}
-          fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`}
-          toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`}
-          stats={stats}
-        />
+        <StatsReport siteName={selectedSite.name} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} stats={stats} />
       )}
 
       <AnimatePresence>
@@ -555,28 +483,16 @@ function NumField({ label, value, onChange }: { label: string; value: number; on
   return (
     <div>
       <label className="block text-xs font-bold text-emerald-700 mb-1">{label}</label>
-      <input
-        type="number"
-        className="w-full px-2.5 py-2 text-sm bg-white border-2 border-emerald-200 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all font-bold text-emerald-900"
-        value={value}
-        onChange={e => onChange(parseInt(e.target.value) || 0)}
-      />
+      <input type="number" className="w-full px-2.5 py-2 text-sm bg-white border-2 border-emerald-200 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all font-bold text-emerald-900" value={value} onChange={e => onChange(parseInt(e.target.value) || 0)} />
     </div>
   );
 }
 
-function StatMini({ icon, label, value, unit, color }: {
-  icon: React.ReactNode; label: string; value: string; unit: string; color: string;
-}) {
+function StatMini({ icon, label, value, unit, color }: { icon: React.ReactNode; label: string; value: string; unit: string; color: string; }) {
   return (
-    <motion.div
-      whileHover={{ y: -2 }}
-      className="p-3.5 rounded-2xl bg-white border-2 border-emerald-100 text-center relative overflow-hidden"
-    >
+    <motion.div whileHover={{ y: -2 }} className="p-3.5 rounded-2xl bg-white border-2 border-emerald-100 text-center relative overflow-hidden">
       <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${color} rounded-full -mr-8 -mt-8 opacity-10`} />
-      <div className={`w-9 h-9 mx-auto rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-2 shadow-md`}>
-        {icon}
-      </div>
+      <div className={`w-9 h-9 mx-auto rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-2 shadow-md`}>{icon}</div>
       <div className="text-xs font-bold text-emerald-600">{label}</div>
       <div className="text-number text-emerald-900 leading-tight mt-0.5">{value}</div>
       <div className="text-[10px] text-emerald-500">{unit}</div>
@@ -591,25 +507,19 @@ function MonthComparison({ records, siteId }: { records: any[]; siteId: string }
     const yearsSet = new Set<number>();
     siteRecords.forEach(r => {
       const d = new Date(r.record_date);
-      const y = d.getFullYear();
-      const m = d.getMonth();
+      const y = d.getFullYear(); const m = d.getMonth();
       yearsSet.add(y);
       if (!byYearMonth[y]) byYearMonth[y] = {};
       if (!byYearMonth[y][m]) byYearMonth[y][m] = { count: 0, total: 0 };
-      byYearMonth[y][m].count++;
-      byYearMonth[y][m].total += r.weight_kg || 0;
+      byYearMonth[y][m].count++; byYearMonth[y][m].total += r.weight_kg || 0;
     });
     const years = Array.from(yearsSet).sort();
     const monthData: any[] = [];
     for (let m = 0; m < 12; m++) {
-      const values: Record<number, any> = {};
-      let hasData = false;
+      const values: Record<number, any> = {}; let hasData = false;
       years.forEach(y => {
         const d = byYearMonth[y]?.[m];
-        if (d && d.count > 0) {
-          hasData = true;
-          values[y] = { avg: d.total / d.count, total: d.total, count: d.count };
-        }
+        if (d && d.count > 0) { hasData = true; values[y] = { avg: d.total / d.count, total: d.total, count: d.count }; }
       });
       if (!hasData) continue;
       const yearsWithData = years.filter(y => values[y]);
@@ -617,8 +527,7 @@ function MonthComparison({ records, siteId }: { records: any[]; siteId: string }
       if (yearsWithData.length >= 2) {
         const lastYear = yearsWithData[yearsWithData.length - 1];
         const prevYear = yearsWithData[yearsWithData.length - 2];
-        const lastVal = values[lastYear].avg;
-        const prevVal = values[prevYear].avg;
+        const lastVal = values[lastYear].avg; const prevVal = values[prevYear].avg;
         if (prevVal > 0) trend = ((lastVal - prevVal) / prevVal) * 100;
       }
       monthData.push({ month: m, values, trend });
@@ -631,52 +540,31 @@ function MonthComparison({ records, siteId }: { records: any[]; siteId: string }
   return (
     <div className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60">
       <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-emerald-100">
-        <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
-          <GitCompare className="w-5 h-5 text-emerald-600" />
-        </div>
-        <div className="flex-1">
-          <h3 className="text-section-title">เปรียบเทียบรายเดือนข้ามปี</h3>
-          <p className="text-hint mt-0.5">เปรียบเทียบค่าเฉลี่ยต่อครั้ง ของเดือนเดียวกัน</p>
-        </div>
+        <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center"><GitCompare className="w-5 h-5 text-emerald-600" /></div>
+        <div className="flex-1"><h3 className="text-section-title">เปรียบเทียบรายเดือนข้ามปี</h3><p className="text-hint mt-0.5">เปรียบเทียบค่าเฉลี่ยต่อครั้ง ของเดือนเดียวกัน</p></div>
       </div>
       <div className="overflow-x-auto -mx-1">
         <table className="w-full text-sm border-collapse min-w-[500px]">
           <thead>
             <tr className="bg-emerald-50">
               <th className="text-left p-3 font-black text-emerald-800 border border-emerald-200">เดือน</th>
-              {data.years.map(y => (
-                <th key={y} className="p-3 font-black text-emerald-800 border border-emerald-200 text-center">{y + 543}</th>
-              ))}
+              {data.years.map(y => <th key={y} className="p-3 font-black text-emerald-800 border border-emerald-200 text-center">{y + 543}</th>)}
               <th className="p-3 font-black text-emerald-800 border border-emerald-200 text-center">แนวโน้ม</th>
             </tr>
           </thead>
           <tbody>
             {data.monthData.map(md => {
-              const trend = md.trend;
-              const isUp = trend !== null && trend > 2;
-              const isDown = trend !== null && trend < -2;
+              const trend = md.trend; const isUp = trend !== null && trend > 2; const isDown = trend !== null && trend < -2;
               return (
                 <tr key={md.month}>
                   <td className="p-3 font-bold text-emerald-900 border border-emerald-200">{MONTHS_TH_SHORT[md.month]}</td>
                   {data.years.map(y => {
                     const v = md.values[y];
                     if (!v) return <td key={y} className="p-3 text-center border border-emerald-200 text-emerald-300">—</td>;
-                    return (
-                      <td key={y} className="p-3 border border-emerald-200 text-center">
-                        <div className="text-number-sm text-emerald-900">{v.avg.toFixed(1)}</div>
-                        <div className="text-xs text-emerald-500 mt-0.5">{v.count} ครั้ง</div>
-                      </td>
-                    );
+                    return (<td key={y} className="p-3 border border-emerald-200 text-center"><div className="text-number-sm text-emerald-900">{v.avg.toFixed(1)}</div><div className="text-xs text-emerald-500 mt-0.5">{v.count} ครั้ง</div></td>);
                   })}
                   <td className={`p-3 border border-emerald-200 text-center ${isUp ? 'bg-red-50' : isDown ? 'bg-emerald-50' : ''}`}>
-                    {trend === null ? (
-                      <span className="text-emerald-300">—</span>
-                    ) : (
-                      <div className={`flex items-center justify-center gap-0.5 font-black text-base ${isUp ? 'text-red-600' : isDown ? 'text-emerald-600' : 'text-emerald-500'}`}>
-                        {isUp ? <ArrowUpRight className="w-4 h-4" /> : isDown ? <ArrowDownRight className="w-4 h-4" /> : '→'}
-                        {Math.abs(trend).toFixed(1)}%
-                      </div>
-                    )}
+                    {trend === null ? <span className="text-emerald-300">—</span> : <div className={`flex items-center justify-center gap-0.5 font-black text-base ${isUp ? 'text-red-600' : isDown ? 'text-emerald-600' : 'text-emerald-500'}`}>{isUp ? <ArrowUpRight className="w-4 h-4" /> : isDown ? <ArrowDownRight className="w-4 h-4" /> : '→'}{Math.abs(trend).toFixed(1)}%</div>}
                   </td>
                 </tr>
               );
@@ -688,10 +576,7 @@ function MonthComparison({ records, siteId }: { records: any[]; siteId: string }
   );
 }
 
-function CalcView({ siteName, siteType, fromLabel, toLabel, result, records }: {
-  siteName: string; siteType: string; fromLabel: string; toLabel: string;
-  result: ReturnType<typeof predict>; records: any[];
-}) {
+function CalcView({ siteName, siteType, fromLabel, toLabel, result, records }: { siteName: string; siteType: string; fromLabel: string; toLabel: string; result: ReturnType<typeof predict>; records: any[]; }) {
   const totalRecords = records.length;
   const totalVolume = records.reduce((s: number, r: any) => s + (r.volume_m3 || 0), 0);
   const totalWeight = records.reduce((s: number, r: any) => s + (r.weight_kg || 0), 0);
@@ -699,181 +584,79 @@ function CalcView({ siteName, siteType, fromLabel, toLabel, result, records }: {
 
   return (
     <div className="space-y-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-emerald-100">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
-            <Calculator className="w-5 h-5 text-emerald-700" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-section-title">ผลการคำนวณพยากรณ์</h3>
-            <p className="text-hint mt-0.5">{siteName} · {fromLabel} – {toLabel}</p>
-          </div>
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center"><Calculator className="w-5 h-5 text-emerald-700" /></div>
+          <div className="flex-1"><h3 className="text-section-title">ผลการคำนวณพยากรณ์</h3><p className="text-hint mt-0.5">{siteName} · {fromLabel} – {toLabel}</p></div>
         </div>
 
         <div className="rounded-3xl bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-600 text-white p-6 text-center shadow-xl shadow-emerald-200/40 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16" />
           <div className="relative">
-            <div className="text-sm font-bold text-white/85 mb-2">
-              ปริมาณขยะที่พยากรณ์ใน 1 ปี
-            </div>
-            <div className="text-3xl lg:text-4xl font-black tabular mb-1.5 text-number-highlight">
-              <AnimatedNumber value={result.yearKg} decimals={0} />
-            </div>
+            <div className="text-sm font-bold text-white/85 mb-2">ปริมาณขยะที่พยากรณ์ใน 1 ปี</div>
+            <div className="text-3xl lg:text-4xl font-black tabular mb-1.5 text-number-highlight"><AnimatedNumber value={result.yearKg} decimals={0} /></div>
             <div className="text-base font-bold opacity-90 mb-4">กก./ปี</div>
             <div className="flex items-center justify-center gap-5 text-sm opacity-90">
-              <div>
-                <div className="opacity-75 text-xs font-bold">ตัน/ปี</div>
-                <div className="font-black text-lg text-number-highlight mt-0.5">
-                  {(result.yearKg / 1000).toFixed(2)}
-                </div>
-              </div>
+              <div><div className="opacity-75 text-xs font-bold">ตัน/ปี</div><div className="font-black text-lg text-number-highlight mt-0.5">{(result.yearKg / 1000).toFixed(2)}</div></div>
               <div className="w-px h-9 bg-white/30" />
-              <div>
-                <div className="opacity-75 text-xs font-bold">กก./เดือน</div>
-                <div className="font-black text-lg text-number-highlight mt-0.5">
-                  {result.monthKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                </div>
-              </div>
+              <div><div className="opacity-75 text-xs font-bold">กก./เดือน</div><div className="font-black text-lg text-number-highlight mt-0.5">{result.monthKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</div></div>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2.5 mt-4">
-          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center">
-            <div className="text-xs font-bold text-emerald-600 mb-1">ข้อมูลที่ใช้</div>
-            <div className="text-number text-emerald-900">{totalRecords}</div>
-            <div className="text-xs text-emerald-500 mt-0.5">ครั้ง</div>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center">
-            <div className="text-xs font-bold text-emerald-600 mb-1">ปริมาตรรวม</div>
-            <div className="text-number text-emerald-900">{totalVolume.toFixed(2)}</div>
-            <div className="text-xs text-emerald-500 mt-0.5">ลบ.ม.</div>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center">
-            <div className="text-xs font-bold text-emerald-600 mb-1">ρ เฉลี่ย</div>
-            <div className="text-number text-emerald-900">{avgDensity.toFixed(0)}</div>
-            <div className="text-xs text-emerald-500 mt-0.5">กก./ม³</div>
-          </div>
+          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center"><div className="text-xs font-bold text-emerald-600 mb-1">ข้อมูลที่ใช้</div><div className="text-number text-emerald-900">{totalRecords}</div><div className="text-xs text-emerald-500 mt-0.5">ครั้ง</div></div>
+          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center"><div className="text-xs font-bold text-emerald-600 mb-1">ปริมาตรรวม</div><div className="text-number text-emerald-900">{totalVolume.toFixed(2)}</div><div className="text-xs text-emerald-500 mt-0.5">ลบ.ม.</div></div>
+          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center"><div className="text-xs font-bold text-emerald-600 mb-1">ρ เฉลี่ย</div><div className="text-number text-emerald-900">{avgDensity.toFixed(0)}</div><div className="text-xs text-emerald-500 mt-0.5">กก./ม³</div></div>
         </div>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-emerald-100">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
-            <span className="text-xl">📐</span>
-          </div>
-          <div>
-            <h3 className="text-section-title">สูตรการคำนวณ</h3>
-            <p className="text-hint mt-0.5">4 ขั้นตอนที่ใช้ในโมเดล</p>
-          </div>
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center"><span className="text-xl">📐</span></div>
+          <div><h3 className="text-section-title">สูตรการคำนวณ</h3><p className="text-hint mt-0.5">4 ขั้นตอนที่ใช้ในโมเดล</p></div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
           <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-100">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">1</div>
-              <div className="text-sm font-black text-emerald-800">แปลงปริมาตรเป็นน้ำหนัก</div>
-            </div>
-            <div className="font-mono text-sm text-emerald-900 bg-white px-3 py-2 rounded-xl mb-2.5 font-bold">
-              W (กก.) = V (ลบ.ม.) × ρ (กก./ลบ.ม.)
-            </div>
-            <div className="text-xs text-emerald-700 space-y-1">
-              <div>• ปริมาตรรวม = <b>{totalVolume.toFixed(3)}</b> ลบ.ม.</div>
-              <div>• ρ เฉลี่ย = <b>{avgDensity.toFixed(2)}</b> กก./ลบ.ม.</div>
-              <div>• น้ำหนักรวม = <b>{totalWeight.toFixed(2)}</b> กก.</div>
-            </div>
+            <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">1</div><div className="text-sm font-black text-emerald-800">แปลงปริมาตรเป็นน้ำหนัก</div></div>
+            <div className="font-mono text-sm text-emerald-900 bg-white px-3 py-2 rounded-xl mb-2.5 font-bold">W (กก.) = V (ลบ.ม.) × ρ (กก./ลบ.ม.)</div>
+            <div className="text-xs text-emerald-700 space-y-1"><div>• ปริมาตรรวม = <b>{totalVolume.toFixed(3)}</b> ลบ.ม.</div><div>• ρ เฉลี่ย = <b>{avgDensity.toFixed(2)}</b> กก./ลบ.ม.</div><div>• น้ำหนักรวม = <b>{totalWeight.toFixed(2)}</b> กก.</div></div>
           </div>
 
           <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-100">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">2</div>
-              <div className="text-sm font-black text-emerald-800">ค่าเฉลี่ยต่อครั้ง</div>
-            </div>
-            <div className="font-mono text-sm text-emerald-900 bg-white px-3 py-2 rounded-xl mb-2.5 font-bold">
-              W̄ = (W₁ + W₂ + ... + Wₙ) ÷ n
-            </div>
+            <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">2</div><div className="text-sm font-black text-emerald-800">ค่าเฉลี่ยต่อครั้ง</div></div>
+            <div className="font-mono text-sm text-emerald-900 bg-white px-3 py-2 rounded-xl mb-2.5 font-bold">W̄ = (W₁ + W₂ + ... + Wₙ) ÷ n</div>
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {result.breakdown.map(b =>
-                b.count > 0 ? (
-                  <div key={b.type} className="flex items-center justify-between text-xs py-1 border-b border-emerald-100 last:border-0">
-                    <span className="text-emerald-800 font-bold">{b.label}</span>
-                    <span className="font-mono text-emerald-700">
-                      {b.count} → <b>{b.avgKg.toFixed(2)}</b> กก.
-                    </span>
-                  </div>
-                ) : null
-              )}
+              {result.breakdown.map(b => b.count > 0 ? (
+                <div key={b.type} className="flex items-center justify-between text-xs py-1 border-b border-emerald-100 last:border-0"><span className="text-emerald-800 font-bold">{b.label}</span><span className="font-mono text-emerald-700">{b.count} → <b>{b.avgKg.toFixed(2)}</b> กก.</span></div>
+              ) : null)}
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-100 xl:col-span-2">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">3</div>
-              <div className="text-sm font-black text-emerald-800">
-                พยากรณ์รายปี — W_ปี = Σ(W_ประเภท × D_ประเภท)
-              </div>
-            </div>
+            <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">3</div><div className="text-sm font-black text-emerald-800">พยากรณ์รายปี — W_ปี = Σ(W_ประเภท × D_ประเภท)</div></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-              {result.breakdown.map(b =>
-                b.count > 0 ? (
-                  <div key={b.type} className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg bg-white border border-emerald-100">
-                    <span className="text-emerald-800 font-bold">{b.label}</span>
-                    <span className="font-mono text-emerald-700">
-                      {b.avgKg.toFixed(2)} × {b.daysPerYear} ={' '}
-                      <b>{b.totalKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</b> กก.
-                    </span>
-                  </div>
-                ) : null
-              )}
+              {result.breakdown.map(b => b.count > 0 ? (
+                <div key={b.type} className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg bg-white border border-emerald-100"><span className="text-emerald-800 font-bold">{b.label}</span><span className="font-mono text-emerald-700">{b.avgKg.toFixed(2)} × {b.daysPerYear} = <b>{b.totalKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</b> กก.</span></div>
+              ) : null)}
             </div>
-            <div className="flex items-center justify-between pt-3 mt-3 border-t-2 border-emerald-300 font-black text-base">
-              <span className="text-emerald-800">รวมทั้งปี</span>
-              <span className="text-emerald-800 text-number-lg">
-                {result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                <span className="text-sm ml-1">กก.</span>
-              </span>
-            </div>
+            <div className="flex items-center justify-between pt-3 mt-3 border-t-2 border-emerald-300 font-black text-base"><span className="text-emerald-800">รวมทั้งปี</span><span className="text-emerald-800 text-number-lg">{result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}<span className="text-sm ml-1">กก.</span></span></div>
           </div>
 
           <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-100 xl:col-span-2">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">4</div>
-              <div className="text-sm font-black text-emerald-800">หาค่าเฉลี่ยต่อเดือน</div>
-            </div>
-            <div className="font-mono text-sm text-emerald-900 bg-white px-3 py-2.5 rounded-xl">
-              W_เดือน = {result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })} ÷ 12 ={' '}
-              <b>{result.monthKg.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</b> กก./เดือน
-            </div>
+            <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">4</div><div className="text-sm font-black text-emerald-800">หาค่าเฉลี่ยต่อเดือน</div></div>
+            <div className="font-mono text-sm text-emerald-900 bg-white px-3 py-2.5 rounded-xl">W_เดือน = {result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })} ÷ 12 = <b>{result.monthKg.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</b> กก./เดือน</div>
           </div>
         </div>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-emerald-100">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
-            <Table className="w-5 h-5 text-emerald-700" />
-          </div>
-          <div>
-            <h3 className="text-section-title">ตารางสรุปการคำนวณ</h3>
-            <p className="text-hint mt-0.5">รายละเอียดแต่ละประเภทวัน</p>
-          </div>
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center"><Table className="w-5 h-5 text-emerald-700" /></div>
+          <div><h3 className="text-section-title">ตารางสรุปการคำนวณ</h3><p className="text-hint mt-0.5">รายละเอียดแต่ละประเภทวัน</p></div>
         </div>
-
         <div className="overflow-x-auto -mx-1">
           <table className="w-full text-sm border-collapse min-w-[500px]">
             <thead>
@@ -892,16 +675,12 @@ function CalcView({ siteName, siteType, fromLabel, toLabel, result, records }: {
                   <td className="p-3 border border-emerald-200 text-center">{b.count}</td>
                   <td className="p-3 border border-emerald-200 text-right tabular">{b.avgKg.toFixed(2)}</td>
                   <td className="p-3 border border-emerald-200 text-center tabular">{b.daysPerYear}</td>
-                  <td className="p-3 border border-emerald-200 text-right tabular font-black text-emerald-700">
-                    {b.totalKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                  </td>
+                  <td className="p-3 border border-emerald-200 text-right tabular font-black text-emerald-700">{b.totalKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</td>
                 </tr>
               ))}
               <tr className="bg-emerald-50 font-black">
                 <td className="p-3 border border-emerald-200 text-emerald-800" colSpan={4}>รวมทั้งปี</td>
-                <td className="p-3 border border-emerald-200 text-right tabular text-emerald-800 text-number">
-                  {result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                </td>
+                <td className="p-3 border border-emerald-200 text-right tabular text-emerald-800 text-number">{result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</td>
               </tr>
             </tbody>
           </table>
@@ -913,7 +692,6 @@ function CalcView({ siteName, siteType, fromLabel, toLabel, result, records }: {
 
 function CollectorReport({ records, sites }: { records: any[]; sites: Site[] }) {
   const [view, setView] = useState<'by-person' | 'by-site' | 'timeline'>('by-person');
-
   const getSiteName = (siteId: string) => {
     const site = sites.find(s => s.id === siteId);
     if (!site) return 'ไม่ระบุ';
@@ -926,11 +704,9 @@ function CollectorReport({ records, sites }: { records: any[]; sites: Site[] }) 
     records.forEach(r => {
       const name = r.user_name || 'ไม่ระบุ';
       if (!map[name]) map[name] = { name, count: 0, totalKg: 0, sites: {}, lastDate: r.record_date };
-      map[name].count++;
-      map[name].totalKg += r.weight_kg || 0;
+      map[name].count++; map[name].totalKg += r.weight_kg || 0;
       if (!map[name].sites[r.site_id]) map[name].sites[r.site_id] = { count: 0, totalKg: 0 };
-      map[name].sites[r.site_id].count++;
-      map[name].sites[r.site_id].totalKg += r.weight_kg || 0;
+      map[name].sites[r.site_id].count++; map[name].sites[r.site_id].totalKg += r.weight_kg || 0;
       if (new Date(r.record_date) > new Date(map[name].lastDate)) map[name].lastDate = r.record_date;
     });
     return Object.values(map).sort((a: any, b: any) => b.totalKg - a.totalKg);
@@ -941,130 +717,56 @@ function CollectorReport({ records, sites }: { records: any[]; sites: Site[] }) 
     records.forEach(r => {
       const sid = r.site_id || 'unknown';
       if (!map[sid]) map[sid] = { siteId: sid, count: 0, totalKg: 0, persons: {}, lastDate: r.record_date };
-      map[sid].count++;
-      map[sid].totalKg += r.weight_kg || 0;
+      map[sid].count++; map[sid].totalKg += r.weight_kg || 0;
       const name = r.user_name || 'ไม่ระบุ';
       if (!map[sid].persons[name]) map[sid].persons[name] = { count: 0, totalKg: 0 };
-      map[sid].persons[name].count++;
-      map[sid].persons[name].totalKg += r.weight_kg || 0;
+      map[sid].persons[name].count++; map[sid].persons[name].totalKg += r.weight_kg || 0;
       if (new Date(r.record_date) > new Date(map[sid].lastDate)) map[sid].lastDate = r.record_date;
     });
     return Object.values(map).sort((a: any, b: any) => b.totalKg - a.totalKg);
   }, [records]);
 
-  const timeline = useMemo(() => {
-    return [...records].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
-  }, [records]);
+  const timeline = useMemo(() => [...records].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime()), [records]);
 
   if (records.length === 0) {
-    return (
-      <div className="bg-white rounded-3xl p-12 shadow-sm border border-emerald-100/60 text-center">
-        <AlertCircle className="w-14 h-14 mx-auto text-amber-500 mb-3" />
-        <p className="text-card-title">ไม่พบข้อมูลในช่วงเวลานี้</p>
-      </div>
-    );
+    return (<div className="bg-white rounded-3xl p-12 shadow-sm border border-emerald-100/60 text-center"><AlertCircle className="w-14 h-14 mx-auto text-amber-500 mb-3" /><p className="text-card-title">ไม่พบข้อมูลในช่วงเวลานี้</p></div>);
   }
 
   const totalKg = records.reduce((s, r) => s + (r.weight_kg || 0), 0);
-  const uniquePersons = byPerson.length;
 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-emerald-100">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
-            <Users className="w-5 h-5 text-emerald-700" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-section-title">รายงานผู้บันทึก</h3>
-            <p className="text-hint mt-0.5">ดูว่าใครไปเก็บที่ไหน ปริมาณเท่าไหร่</p>
-          </div>
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center"><Users className="w-5 h-5 text-emerald-700" /></div>
+          <div className="flex-1"><h3 className="text-section-title">รายงานผู้บันทึก</h3><p className="text-hint mt-0.5">ดูว่าใครไปเก็บที่ไหน ปริมาณเท่าไหร่</p></div>
         </div>
-
         <div className="grid grid-cols-3 gap-2.5">
-          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center">
-            <div className="text-xs font-bold text-emerald-600 mb-1">ผู้บันทึก</div>
-            <div className="text-number text-emerald-800">{uniquePersons}</div>
-            <div className="text-xs text-emerald-500 mt-0.5">คน</div>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center">
-            <div className="text-xs font-bold text-emerald-600 mb-1">จำนวนครั้ง</div>
-            <div className="text-number text-emerald-800">{records.length}</div>
-            <div className="text-xs text-emerald-500 mt-0.5">ครั้ง</div>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center">
-            <div className="text-xs font-bold text-emerald-600 mb-1">น้ำหนักรวม</div>
-            <div className="text-number text-emerald-800">{totalKg.toFixed(0)}</div>
-            <div className="text-xs text-emerald-500 mt-0.5">กก.</div>
-          </div>
+          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center"><div className="text-xs font-bold text-emerald-600 mb-1">ผู้บันทึก</div><div className="text-number text-emerald-800">{byPerson.length}</div><div className="text-xs text-emerald-500 mt-0.5">คน</div></div>
+          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center"><div className="text-xs font-bold text-emerald-600 mb-1">จำนวนครั้ง</div><div className="text-number text-emerald-800">{records.length}</div><div className="text-xs text-emerald-500 mt-0.5">ครั้ง</div></div>
+          <div className="p-3.5 rounded-2xl bg-emerald-50 text-center"><div className="text-xs font-bold text-emerald-600 mb-1">น้ำหนักรวม</div><div className="text-number text-emerald-800">{totalKg.toFixed(0)}</div><div className="text-xs text-emerald-500 mt-0.5">กก.</div></div>
         </div>
-
         <div className="grid grid-cols-3 gap-2 mt-4">
-          <button
-            onClick={() => setView('by-person')}
-            className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-              view === 'by-person' ? 'bg-emerald-700 text-white shadow-md shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-            }`}
-          >
-            <Users className="w-4 h-4" /> ตามคน
-          </button>
-          <button
-            onClick={() => setView('by-site')}
-            className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-              view === 'by-site' ? 'bg-emerald-700 text-white shadow-md shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-            }`}
-          >
-            <MapPin className="w-4 h-4" /> ตามสถานที่
-          </button>
-          <button
-            onClick={() => setView('timeline')}
-            className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-              view === 'timeline' ? 'bg-emerald-700 text-white shadow-md shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-            }`}
-          >
-            <Clock className="w-4 h-4" /> ตามเวลา
-          </button>
+          <button onClick={() => setView('by-person')} className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${view === 'by-person' ? 'bg-emerald-700 text-white shadow-md shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}><Users className="w-4 h-4" /> ตามคน</button>
+          <button onClick={() => setView('by-site')} className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${view === 'by-site' ? 'bg-emerald-700 text-white shadow-md shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}><MapPin className="w-4 h-4" /> ตามสถานที่</button>
+          <button onClick={() => setView('timeline')} className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${view === 'timeline' ? 'bg-emerald-700 text-white shadow-md shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}><Clock className="w-4 h-4" /> ตามเวลา</button>
         </div>
       </div>
 
       {view === 'by-person' && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
           {byPerson.map((p: any, i: number) => (
-            <motion.div
-              key={p.name}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="bg-white rounded-3xl p-4 shadow-sm border border-emerald-100/60"
-            >
+            <motion.div key={p.name} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="bg-white rounded-3xl p-4 shadow-sm border border-emerald-100/60">
               <div className="flex items-center gap-3 mb-3 pb-3 border-b border-emerald-100">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-500 flex items-center justify-center text-white font-black text-xl shadow-md shadow-emerald-200">
-                  {p.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <div className="text-card-title">{p.name}</div>
-                  <div className="text-xs text-emerald-500 mt-0.5">
-                    ล่าสุด: {new Date(p.lastDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-number-lg text-emerald-700">
-                    {p.totalKg.toFixed(0)}
-                    <span className="text-xs ml-1">กก.</span>
-                  </div>
-                  <div className="text-xs text-emerald-500 mt-0.5">{p.count} ครั้ง</div>
-                </div>
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-500 flex items-center justify-center text-white font-black text-xl shadow-md shadow-emerald-200">{p.name.charAt(0).toUpperCase()}</div>
+                <div className="flex-1"><div className="text-card-title">{p.name}</div><div className="text-xs text-emerald-500 mt-0.5">ล่าสุด: {new Date(p.lastDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</div></div>
+                <div className="text-right"><div className="text-number-lg text-emerald-700">{p.totalKg.toFixed(0)}<span className="text-xs ml-1">กก.</span></div><div className="text-xs text-emerald-500 mt-0.5">{p.count} ครั้ง</div></div>
               </div>
               <div className="space-y-1.5">
                 {Object.entries(p.sites).map(([sid, data]: [string, any]) => (
                   <div key={sid} className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/50">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-emerald-900 truncate">{getSiteName(sid)}</div>
-                      <div className="text-xs text-emerald-500 mt-0.5">{data.count} ครั้ง</div>
-                    </div>
-                    <div className="text-number-sm text-emerald-700 ml-2">
-                      {data.totalKg.toFixed(1)} กก.
-                    </div>
+                    <div className="flex-1 min-w-0"><div className="text-sm font-bold text-emerald-900 truncate">{getSiteName(sid)}</div><div className="text-xs text-emerald-500 mt-0.5">{data.count} ครั้ง</div></div>
+                    <div className="text-number-sm text-emerald-700 ml-2">{data.totalKg.toFixed(1)} กก.</div>
                   </div>
                 ))}
               </div>
@@ -1076,54 +778,22 @@ function CollectorReport({ records, sites }: { records: any[]; sites: Site[] }) 
       {view === 'by-site' && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
           {bySite.map((s: any, i: number) => (
-            <motion.div
-              key={s.siteId}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="bg-white rounded-3xl p-4 shadow-sm border border-emerald-100/60"
-            >
+            <motion.div key={s.siteId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="bg-white rounded-3xl p-4 shadow-sm border border-emerald-100/60">
               <div className="flex items-center gap-3 mb-3 pb-3 border-b border-emerald-100">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-500 flex items-center justify-center text-white text-2xl shadow-md shadow-emerald-200">
-                  {(() => {
-                    const site = sites.find(st => st.id === s.siteId);
-                    const t = site ? SITE_TYPES.find(t => t.id === site.type) : null;
-                    return t?.icon || '📍';
-                  })()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-card-title truncate">{getSiteName(s.siteId)}</div>
-                  <div className="text-xs text-emerald-500 mt-0.5">
-                    ล่าสุด: {new Date(s.lastDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-number-lg text-emerald-700">
-                    {s.totalKg.toFixed(0)}
-                    <span className="text-xs ml-1">กก.</span>
-                  </div>
-                  <div className="text-xs text-emerald-500 mt-0.5">{s.count} ครั้ง</div>
-                </div>
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-500 flex items-center justify-center text-white text-2xl shadow-md shadow-emerald-200">{(() => { const site = sites.find(st => st.id === s.siteId); const t = site ? SITE_TYPES.find(t => t.id === site.type) : null; return t?.icon || '📍'; })()}</div>
+                <div className="flex-1 min-w-0"><div className="text-card-title truncate">{getSiteName(s.siteId)}</div><div className="text-xs text-emerald-500 mt-0.5">ล่าสุด: {new Date(s.lastDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</div></div>
+                <div className="text-right"><div className="text-number-lg text-emerald-700">{s.totalKg.toFixed(0)}<span className="text-xs ml-1">กก.</span></div><div className="text-xs text-emerald-500 mt-0.5">{s.count} ครั้ง</div></div>
               </div>
               <div className="space-y-1.5">
-                {Object.entries(s.persons)
-                  .sort(([, a]: any, [, b]: any) => b.totalKg - a.totalKg)
-                  .map(([name, data]: [string, any]) => (
-                    <div key={name} className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/50">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-sm font-black text-emerald-700 shadow-sm shrink-0">
-                          {name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-bold text-emerald-900 truncate">{name}</div>
-                          <div className="text-xs text-emerald-500 mt-0.5">{data.count} ครั้ง</div>
-                        </div>
-                      </div>
-                      <div className="text-number-sm text-emerald-700 ml-2">
-                        {data.totalKg.toFixed(1)} กก.
-                      </div>
+                {Object.entries(s.persons).sort(([, a]: any, [, b]: any) => b.totalKg - a.totalKg).map(([name, data]: [string, any]) => (
+                  <div key={name} className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/50">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-sm font-black text-emerald-700 shadow-sm shrink-0">{name.charAt(0).toUpperCase()}</div>
+                      <div className="flex-1 min-w-0"><div className="text-sm font-bold text-emerald-900 truncate">{name}</div><div className="text-xs text-emerald-500 mt-0.5">{data.count} ครั้ง</div></div>
                     </div>
-                  ))}
+                    <div className="text-number-sm text-emerald-700 ml-2">{data.totalKg.toFixed(1)} กก.</div>
+                  </div>
+                ))}
               </div>
             </motion.div>
           ))}
@@ -1134,34 +804,14 @@ function CollectorReport({ records, sites }: { records: any[]; sites: Site[] }) 
         <div className="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100/60">
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse min-w-[500px]">
-              <thead>
-                <tr className="bg-emerald-50">
-                  <th className="text-left p-3 font-black text-emerald-700 border border-emerald-200">วันที่</th>
-                  <th className="text-left p-3 font-black text-emerald-700 border border-emerald-200">ผู้บันทึก</th>
-                  <th className="text-left p-3 font-black text-emerald-700 border border-emerald-200">สถานที่</th>
-                  <th className="p-3 font-black text-emerald-700 border border-emerald-200 text-right">ปริมาณ (กก.)</th>
-                </tr>
-              </thead>
+              <thead><tr className="bg-emerald-50"><th className="text-left p-3 font-black text-emerald-700 border border-emerald-200">วันที่</th><th className="text-left p-3 font-black text-emerald-700 border border-emerald-200">ผู้บันทึก</th><th className="text-left p-3 font-black text-emerald-700 border border-emerald-200">สถานที่</th><th className="p-3 font-black text-emerald-700 border border-emerald-200 text-right">ปริมาณ (กก.)</th></tr></thead>
               <tbody>
                 {timeline.map(r => (
                   <tr key={r.id} className="hover:bg-emerald-50/50">
-                    <td className="p-3 border border-emerald-200 text-emerald-900">
-                      {new Date(r.record_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
-                    </td>
-                    <td className="p-3 border border-emerald-200">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-md bg-emerald-100 flex items-center justify-center text-xs font-black text-emerald-700">
-                          {(r.user_name || '?').charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-bold text-emerald-900 truncate">{r.user_name || 'ไม่ระบุ'}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 border border-emerald-200 text-emerald-900 truncate max-w-[200px]">
-                      {getSiteName(r.site_id)}
-                    </td>
-                    <td className="p-3 border border-emerald-200 text-right tabular font-black text-emerald-700">
-                      {r.weight_kg.toFixed(2)}
-                    </td>
+                    <td className="p-3 border border-emerald-200 text-emerald-900">{new Date(r.record_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</td>
+                    <td className="p-3 border border-emerald-200"><div className="flex items-center gap-2"><div className="w-7 h-7 rounded-md bg-emerald-100 flex items-center justify-center text-xs font-black text-emerald-700">{(r.user_name || '?').charAt(0).toUpperCase()}</div><span className="font-bold text-emerald-900 truncate">{r.user_name || 'ไม่ระบุ'}</span></div></td>
+                    <td className="p-3 border border-emerald-200 text-emerald-900 truncate max-w-[200px]">{getSiteName(r.site_id)}</td>
+                    <td className="p-3 border border-emerald-200 text-right tabular font-black text-emerald-700">{r.weight_kg.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1190,9 +840,7 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
         <div style={{ fontSize: '13px', color: '#334155' }}>กองสาธารณสุขและสิ่งแวดล้อม</div>
         <div style={{ fontSize: '13px', color: '#334155' }}>อำเภอเมืองพะเยา จังหวัดพะเยา</div>
       </div>
-      <div className="text-center mb-6">
-        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#065f46', letterSpacing: '0.5px' }}>รายงานสถิติปริมาณขยะมูลฝอย</div>
-      </div>
+      <div className="text-center mb-6"><div style={{ fontSize: '20px', fontWeight: 'bold', color: '#065f46', letterSpacing: '0.5px' }}>รายงานสถิติปริมาณขยะมูลฝอย</div></div>
       <div style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
         <div style={sectionTitle}>1. ข้อมูลทั่วไป</div>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px' }}>
@@ -1208,13 +856,7 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
       <div style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
         <div style={sectionTitle}>2. สถิติพื้นฐาน (หน่วย: กิโลกรัม)</div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ ...thStyle, textAlign: 'left' }}>ตัวชี้วัด</th>
-              <th style={{ ...thStyle, textAlign: 'right', width: '120px' }}>ค่า</th>
-              <th style={{ ...thStyle, textAlign: 'left', width: '260px' }}>ความหมาย</th>
-            </tr>
-          </thead>
+          <thead><tr><th style={{ ...thStyle, textAlign: 'left' }}>ตัวชี้วัด</th><th style={{ ...thStyle, textAlign: 'right', width: '120px' }}>ค่า</th><th style={{ ...thStyle, textAlign: 'left', width: '260px' }}>ความหมาย</th></tr></thead>
           <tbody>
             <tr><td style={tdStyle}>ค่าเฉลี่ย (Mean)</td><td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold' }}>{stats.mean.toFixed(2)}</td><td style={tdStyle}>ผลรวมน้ำหนัก ÷ จำนวนครั้ง</td></tr>
             <tr><td style={tdStyle}>มัธยฐาน (Median)</td><td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold' }}>{stats.median.toFixed(2)}</td><td style={tdStyle}>ค่ากลางของข้อมูล</td></tr>
@@ -1228,13 +870,7 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
       <div style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
         <div style={sectionTitle}>3. การกระจายตัวของข้อมูล (Quartile)</div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ ...thStyle, textAlign: 'left' }}>ตำแหน่ง</th>
-              <th style={{ ...thStyle, textAlign: 'right', width: '120px' }}>ค่า (กก.)</th>
-              <th style={{ ...thStyle, textAlign: 'left', width: '260px' }}>ความหมาย</th>
-            </tr>
-          </thead>
+          <thead><tr><th style={{ ...thStyle, textAlign: 'left' }}>ตำแหน่ง</th><th style={{ ...thStyle, textAlign: 'right', width: '120px' }}>ค่า (กก.)</th><th style={{ ...thStyle, textAlign: 'left', width: '260px' }}>ความหมาย</th></tr></thead>
           <tbody>
             <tr><td style={tdStyle}>ต่ำสุด (Min)</td><td style={{ ...tdStyle, textAlign: 'right' }}>{stats.min.toFixed(2)}</td><td style={tdStyle}>ค่าน้อยที่สุด</td></tr>
             <tr><td style={tdStyle}>Q1 (Quartile 1)</td><td style={{ ...tdStyle, textAlign: 'right' }}>{stats.q1.toFixed(2)}</td><td style={tdStyle}>25% ของข้อมูลต่ำกว่านี้</td></tr>
@@ -1248,30 +884,12 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
       <div style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
         <div style={sectionTitle}>4. สถิติแยกตามประเภทวัน</div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ ...thStyle, textAlign: 'left' }}>ประเภทวัน</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>จำนวน (ครั้ง)</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>รวม (กก.)</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>เฉลี่ย (กก.)</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>ต่ำสุด</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>สูงสุด</th>
-            </tr>
-          </thead>
+          <thead><tr><th style={{ ...thStyle, textAlign: 'left' }}>ประเภทวัน</th><th style={{ ...thStyle, textAlign: 'right' }}>จำนวน (ครั้ง)</th><th style={{ ...thStyle, textAlign: 'right' }}>รวม (กก.)</th><th style={{ ...thStyle, textAlign: 'right' }}>เฉลี่ย (กก.)</th><th style={{ ...thStyle, textAlign: 'right' }}>ต่ำสุด</th><th style={{ ...thStyle, textAlign: 'right' }}>สูงสุด</th></tr></thead>
           <tbody>
             {DAY_TYPES.map(dt => {
               const t = stats.byType[dt.value];
               if (!t) return null;
-              return (
-                <tr key={dt.value}>
-                  <td style={tdStyle}>{dt.sym} {dt.label}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{t.count}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{t.total.toFixed(2)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold' }}>{t.avg.toFixed(2)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{t.min.toFixed(2)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{t.max.toFixed(2)}</td>
-                </tr>
-              );
+              return (<tr key={dt.value}><td style={tdStyle}>{dt.sym} {dt.label}</td><td style={{ ...tdStyle, textAlign: 'right' }}>{t.count}</td><td style={{ ...tdStyle, textAlign: 'right' }}>{t.total.toFixed(2)}</td><td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold' }}>{t.avg.toFixed(2)}</td><td style={{ ...tdStyle, textAlign: 'right' }}>{t.min.toFixed(2)}</td><td style={{ ...tdStyle, textAlign: 'right' }}>{t.max.toFixed(2)}</td></tr>);
             })}
           </tbody>
         </table>
@@ -1280,28 +898,12 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
         <div style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
           <div style={sectionTitle}>5. สถิติรายเดือน</div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ ...thStyle, textAlign: 'left' }}>เดือน / ปี</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>จำนวนครั้ง</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>น้ำหนักรวม (กก.)</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>เฉลี่ย/ครั้ง (กก.)</th>
-              </tr>
-            </thead>
+            <thead><tr><th style={{ ...thStyle, textAlign: 'left' }}>เดือน / ปี</th><th style={{ ...thStyle, textAlign: 'right' }}>จำนวนครั้ง</th><th style={{ ...thStyle, textAlign: 'right' }}>น้ำหนักรวม (กก.)</th><th style={{ ...thStyle, textAlign: 'right' }}>เฉลี่ย/ครั้ง (กก.)</th></tr></thead>
             <tbody>
-              {Object.entries(stats.byMonth)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([key, data]: [string, any]) => {
-                  const [y, m] = key.split('-');
-                  return (
-                    <tr key={key}>
-                      <td style={tdStyle}>{MONTHS_TH[parseInt(m) - 1]} {parseInt(y) + 543}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right' }}>{data.count}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right' }}>{data.total.toFixed(2)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold' }}>{data.avg.toFixed(2)}</td>
-                    </tr>
-                  );
-                })}
+              {Object.entries(stats.byMonth).sort(([a], [b]) => a.localeCompare(b)).map(([key, data]: [string, any]) => {
+                const [y, m] = key.split('-');
+                return (<tr key={key}><td style={tdStyle}>{MONTHS_TH[parseInt(m) - 1]} {parseInt(y) + 543}</td><td style={{ ...tdStyle, textAlign: 'right' }}>{data.count}</td><td style={{ ...tdStyle, textAlign: 'right' }}>{data.total.toFixed(2)}</td><td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold' }}>{data.avg.toFixed(2)}</td></tr>);
+              })}
             </tbody>
           </table>
         </div>
@@ -1319,18 +921,8 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
       </div>
       <div style={{ marginTop: '60px', paddingTop: '20px', borderTop: '1px dashed #94a3b8', pageBreakInside: 'avoid' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', textAlign: 'center', fontSize: '14px' }}>
-          <div>
-            <div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div>
-            <div>( .................................................... )</div>
-            <div style={{ color: '#334155' }}>ผู้จัดทำรายงาน</div>
-            <div style={{ color: '#334155', marginTop: '4px', fontSize: '13px' }}>วันที่ ......... / ......... / .........</div>
-          </div>
-          <div>
-            <div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div>
-            <div>( .................................................... )</div>
-            <div style={{ color: '#334155' }}>ผู้ตรวจสอบ / อนุมัติ</div>
-            <div style={{ color: '#334155', marginTop: '4px', fontSize: '13px' }}>วันที่ ......... / ......... / .........</div>
-          </div>
+          <div><div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div><div>( .................................................... )</div><div style={{ color: '#334155' }}>ผู้จัดทำรายงาน</div><div style={{ color: '#334155', marginTop: '4px', fontSize: '13px' }}>วันที่ ......... / ......... / .........</div></div>
+          <div><div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div><div>( .................................................... )</div><div style={{ color: '#334155' }}>ผู้ตรวจสอบ / อนุมัติ</div><div style={{ color: '#334155', marginTop: '4px', fontSize: '13px' }}>วันที่ ......... / ......... / .........</div></div>
         </div>
       </div>
       <div style={{ marginTop: '30px', paddingTop: '10px', textAlign: 'center', fontSize: '11px', color: '#64748b', borderTop: '1px solid #cbd5e0' }}>รายงานนี้สร้างโดยระบบ TWT Waste Predict · เทศบาลตำบลท่าวังทอง</div>
@@ -1368,13 +960,9 @@ function CalcReport({ siteName, siteType, fromLabel, toLabel, result, records }:
       </table>
       <div className="text-center py-6 mb-8" style={{ borderTop: '2px solid #065f46', borderBottom: '2px solid #065f46', backgroundColor: '#f0fdf4', ...keepTogether }}>
         <div style={{ fontSize: '15px', color: '#334155' }}>ปริมาณขยะมูลฝอยที่พยากรณ์ใน 1 ปี</div>
-        <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#065f46', lineHeight: '1.2', margin: '8px 0' }}>
-          {result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-        </div>
+        <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#065f46', lineHeight: '1.2', margin: '8px 0' }}>{result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</div>
         <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#065f46' }}>กิโลกรัมต่อปี</div>
-        <div style={{ fontSize: '15px', color: '#334155', marginTop: '8px' }}>
-          คิดเป็น {(result.yearKg / 1000).toFixed(2)} ตันต่อปี หรือเฉลี่ย {result.monthKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })} กิโลกรัมต่อเดือน
-        </div>
+        <div style={{ fontSize: '15px', color: '#334155', marginTop: '8px' }}>คิดเป็น {(result.yearKg / 1000).toFixed(2)} ตันต่อปี หรือเฉลี่ย {result.monthKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })} กิโลกรัมต่อเดือน</div>
       </div>
       <div className="mb-8">
         <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#065f46', marginBottom: '12px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>สูตรการคำนวณและการแทนค่า</div>
@@ -1391,9 +979,7 @@ function CalcReport({ siteName, siteType, fromLabel, toLabel, result, records }:
           <div style={{ paddingLeft: '20px', fontSize: '15px' }}>
             <div>สูตร: W̄ = (W₁ + W₂ + ... + Wₙ) ÷ n</div>
             <ul style={{ paddingLeft: '24px', marginTop: '4px' }}>
-              {result.breakdown.map((b: any) => (
-                <li key={b.type} style={{ fontSize: '15px' }}>{b.label}: {b.count} ครั้ง → เฉลี่ย <b>{b.avgKg.toFixed(2)}</b> กก./ครั้ง</li>
-              ))}
+              {result.breakdown.map((b: any) => (<li key={b.type} style={{ fontSize: '15px' }}>{b.label}: {b.count} ครั้ง → เฉลี่ย <b>{b.avgKg.toFixed(2)}</b> กก./ครั้ง</li>))}
             </ul>
           </div>
         </div>
@@ -1404,17 +990,9 @@ function CalcReport({ siteName, siteType, fromLabel, toLabel, result, records }:
             <table className="w-full mt-2" style={{ fontSize: '14px' }}>
               <tbody>
                 {result.breakdown.map((b: any) => (
-                  <tr key={b.type}>
-                    <td style={{ padding: '2px 0', width: '40%' }}>{b.label}</td>
-                    <td style={{ padding: '2px 0' }}>= {b.avgKg.toFixed(2)} กก./วัน × {b.daysPerYear} วัน</td>
-                    <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>= {b.totalKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })} กก.</td>
-                  </tr>
+                  <tr key={b.type}><td style={{ padding: '2px 0', width: '40%' }}>{b.label}</td><td style={{ padding: '2px 0' }}>= {b.avgKg.toFixed(2)} กก./วัน × {b.daysPerYear} วัน</td><td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>= {b.totalKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })} กก.</td></tr>
                 ))}
-                <tr style={{ borderTop: '1px solid #065f46' }}>
-                  <td style={{ padding: '6px 0', fontWeight: 'bold' }}>รวมทั้งปี</td>
-                  <td></td>
-                  <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 'bold', color: '#065f46', fontSize: '15px' }}>= {result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })} กก.</td>
-                </tr>
+                <tr style={{ borderTop: '1px solid #065f46' }}><td style={{ padding: '6px 0', fontWeight: 'bold' }}>รวมทั้งปี</td><td></td><td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 'bold', color: '#065f46', fontSize: '15px' }}>= {result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })} กก.</td></tr>
               </tbody>
             </table>
           </div>
@@ -1423,24 +1001,14 @@ function CalcReport({ siteName, siteType, fromLabel, toLabel, result, records }:
           <div style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '4px' }}>4. การหาค่าเฉลี่ยต่อเดือน</div>
           <div style={{ paddingLeft: '20px', fontSize: '15px' }}>
             <div>สูตร: W_เดือน = W_ปี ÷ 12</div>
-            <div style={{ marginTop: '4px', color: '#065f46', fontWeight: 'bold', fontSize: '16px' }}>
-              = {result.monthKg.toLocaleString('th-TH', { maximumFractionDigits: 2 })} กก./เดือน
-            </div>
+            <div style={{ marginTop: '4px', color: '#065f46', fontWeight: 'bold', fontSize: '16px' }}>= {result.monthKg.toLocaleString('th-TH', { maximumFractionDigits: 2 })} กก./เดือน</div>
           </div>
         </div>
       </div>
       <div className="mb-10" style={keepTogether}>
         <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#065f46', marginBottom: '8px' }}>ตารางสรุปรายละเอียดการคำนวณ</div>
         <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: '14px', border: '1.5px solid #065f46' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#ecfdf5' }}>
-              <th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>ประเภทวัน</th>
-              <th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>จำนวนครั้ง</th>
-              <th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>น้ำหนักเฉลี่ย/ครั้ง (กก.)</th>
-              <th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>จำนวนวัน/ปี</th>
-              <th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>รวม (กก.)</th>
-            </tr>
-          </thead>
+          <thead><tr style={{ backgroundColor: '#ecfdf5' }}><th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>ประเภทวัน</th><th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>จำนวนครั้ง</th><th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>น้ำหนักเฉลี่ย/ครั้ง (กก.)</th><th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>จำนวนวัน/ปี</th><th style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>รวม (กก.)</th></tr></thead>
           <tbody>
             {result.breakdown.map((b: any) => (
               <tr key={b.type}>
@@ -1451,27 +1019,14 @@ function CalcReport({ siteName, siteType, fromLabel, toLabel, result, records }:
                 <td style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{b.totalKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</td>
               </tr>
             ))}
-            <tr style={{ backgroundColor: '#ecfdf5', fontWeight: 'bold' }}>
-              <td style={{ border: '1px solid #065f46', padding: '8px' }} colSpan={4}>รวมทั้งปี</td>
-              <td style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'right', color: '#065f46', fontSize: '16px' }}>{result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</td>
-            </tr>
+            <tr style={{ backgroundColor: '#ecfdf5', fontWeight: 'bold' }}><td style={{ border: '1px solid #065f46', padding: '8px' }} colSpan={4}>รวมทั้งปี</td><td style={{ border: '1px solid #065f46', padding: '8px', textAlign: 'right', color: '#065f46', fontSize: '16px' }}>{result.yearKg.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</td></tr>
           </tbody>
         </table>
       </div>
       <div className="mt-16 pt-8" style={{ borderTop: '1px dashed #94a3b8', ...keepTogether }}>
         <div className="grid grid-cols-2 gap-16" style={{ fontSize: '15px' }}>
-          <div className="text-center">
-            <div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div>
-            <div>( .................................................... )</div>
-            <div style={{ fontSize: '14px', color: '#334155' }}>ผู้จัดทำรายงาน</div>
-            <div style={{ fontSize: '14px', color: '#334155', marginTop: '4px' }}>วันที่ ......... / ......... / .........</div>
-          </div>
-          <div className="text-center">
-            <div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div>
-            <div>( .................................................... )</div>
-            <div style={{ fontSize: '14px', color: '#334155' }}>ผู้ตรวจสอบ / อนุมัติ</div>
-            <div style={{ fontSize: '14px', color: '#334155', marginTop: '4px' }}>วันที่ ......... / ......... / .........</div>
-          </div>
+          <div className="text-center"><div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div><div>( .................................................... )</div><div style={{ fontSize: '14px', color: '#334155' }}>ผู้จัดทำรายงาน</div><div style={{ fontSize: '14px', color: '#334155', marginTop: '4px' }}>วันที่ ......... / ......... / .........</div></div>
+          <div className="text-center"><div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div><div>( .................................................... )</div><div style={{ fontSize: '14px', color: '#334155' }}>ผู้ตรวจสอบ / อนุมัติ</div><div style={{ fontSize: '14px', color: '#334155', marginTop: '4px' }}>วันที่ ......... / ......... / .........</div></div>
         </div>
       </div>
       <div className="mt-10 pt-4 text-center" style={{ fontSize: '12px', color: '#64748b', borderTop: '1px solid #cbd5e0' }}>รายงานนี้สร้างโดยระบบ TWT Waste Predict · เทศบาลตำบลท่าวังทอง</div>

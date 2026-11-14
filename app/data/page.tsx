@@ -7,7 +7,7 @@ import {
   Settings, Calculator, Calendar, Building2, ChevronDown, Loader2,
   Printer, AlertCircle, BarChart3, TrendingUp, TrendingDown, Activity,
   Target, PieChart, LineChart as LineIcon, GitCompare, ArrowUpRight,
-  ArrowDownRight, Table, Users, MapPin, Clock, Search, X
+  ArrowDownRight, Table, Users, MapPin, Clock, Search, X, Camera
 } from 'lucide-react';
 import { useRecords } from '@/lib/hooks';
 import { SITE_TYPES, MONTHS_TH, MONTHS_TH_SHORT, DAY_TYPES } from '@/lib/constants';
@@ -112,20 +112,7 @@ function DataPageInner() {
     ? SITE_TYPES.find(t => t.id === selectedSite.type)
     : null;
 
-  // ⭐ 1. เพิ่ม useEffect นี้เพื่อให้ Dropdown เปลี่ยนตามที่พิมพ์ค้นหา
-  useEffect(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return;
-    
-    // ถ้าพิมพ์คำค้นหา แล้วไปตรงกับชื่อสถานที่ไหน ให้เปลี่ยน dropdown ไปที่นั่นทันที
-    const matchedSite = sites.find(s => s.name.toLowerCase().includes(q));
-    if (matchedSite && matchedSite.id !== siteId) {
-      setSiteId(matchedSite.id);
-    }
-  }, [searchQuery, sites, siteId]);
-
-
-  // ⭐ 2. แก้ Logic การกรองข้อมูลให้ยึดตามสถานที่ที่เลือกใน Dropdown เป็นหลัก
+  // ค้นหาข้ามทุกสถานที่หากมีคำค้นหา
   const filteredRecords = useMemo(() => {
     if (!selectedSite) return [];
     const from = new Date(fromYear, fromMonth, 1);
@@ -145,7 +132,6 @@ function DataPageInner() {
           const note = r.note?.toLowerCase() || '';
           const siteName = selectedSite.name.toLowerCase();
           
-          // ถ้าค้นหาแล้ว ไม่เจอทั้งชื่อคน, หมายเหตุ, หรือชื่อสถานที่ ให้กรองออก
           if (!siteName.includes(query) && !userName.includes(query) && !note.includes(query)) {
             return false;
           }
@@ -463,7 +449,7 @@ function DataPageInner() {
         <CalcReport siteName={selectedSite.name} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} result={result} records={filteredRecords} />
       )}
       {stats && selectedSite && (
-        <StatsReport siteName={selectedSite.name} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} stats={stats} />
+        <StatsReport siteName={selectedSite.name} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} stats={stats} records={filteredRecords} />
       )}
 
       <AnimatePresence>
@@ -823,7 +809,54 @@ function CollectorReport({ records, sites }: { records: any[]; sites: Site[] }) 
   );
 }
 
-function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
+// ⭐ Component สำหรับแสดงภาคผนวกภาพถ่าย (เพิ่ม นน./ปริมาตร)
+function PhotoAppendix({ records }: { records: any[] }) {
+  const photos = records.filter(r => r.photo_url);
+  if (photos.length === 0) return null;
+
+  return (
+    <div style={{ pageBreakBefore: 'always', breakBefore: 'page', marginTop: '40px' }}>
+      <div className="text-center mb-6">
+        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#065f46' }}>ภาคผนวก: ภาพถ่ายหลักฐาน</div>
+        <div style={{ fontSize: '13px', color: '#64748b' }}>จำนวนทั้งหมด {photos.length} รูป</div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-6">
+        {photos.map((r, idx) => (
+          <div key={r.id} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }} className="border border-emerald-200 rounded-xl p-3 bg-white">
+            <div className="rounded-lg overflow-hidden border border-emerald-100 mb-2">
+              <img src={r.photo_url} alt="หลักฐาน" className="w-full h-48 object-cover" />
+            </div>
+            <div className="text-center">
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#065f46', marginBottom: '2px' }}>
+                รูปที่ {idx + 1}
+              </div>
+              <div style={{ fontSize: '12px', color: '#334155' }}>
+                📅 วันที่: {new Date(r.record_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
+              <div style={{ fontSize: '12px', color: '#334155' }}>
+                👤 ผู้บันทึก: {r.user_name || 'ไม่ระบุ'}
+              </div>
+              
+              {/* ⭐ เพิ่มส่วนนี้: น้ำหนัก และ ปริมาตร */}
+              <div style={{ fontSize: '12px', color: '#334155', marginTop: '6px', borderTop: '1px dashed #cbd5e0', paddingTop: '6px' }}>
+                ⚖️ น้ำหนัก: <span style={{ fontWeight: 'bold', color: '#047857' }}>{r.weight_kg.toFixed(1)}</span> กก. &nbsp;|&nbsp; 📦 ปริมาตร: <span style={{ fontWeight: 'bold', color: '#047857' }}>{r.volume_m3.toFixed(3)}</span> ม³
+              </div>
+              
+              {r.note && (
+                <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', marginTop: '4px' }}>
+                  📝 {r.note}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatsReport({ siteName, siteType, fromLabel, toLabel, stats, records }: any) {
   const today = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
   const tdStyle: React.CSSProperties = { border: '1px solid #065f46', padding: '6px 10px', fontSize: '13px' };
   const thStyle: React.CSSProperties = { border: '1px solid #065f46', padding: '8px 10px', backgroundColor: '#ecfdf5', fontWeight: 'bold', fontSize: '13px', textAlign: 'center', color: '#064e3b' };
@@ -841,6 +874,8 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
         <div style={{ fontSize: '13px', color: '#334155' }}>อำเภอเมืองพะเยา จังหวัดพะเยา</div>
       </div>
       <div className="text-center mb-6"><div style={{ fontSize: '20px', fontWeight: 'bold', color: '#065f46', letterSpacing: '0.5px' }}>รายงานสถิติปริมาณขยะมูลฝอย</div></div>
+      
+      {/* ... Sections 1-6 (เหมือนเดิม) ... */}
       <div style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
         <div style={sectionTitle}>1. ข้อมูลทั่วไป</div>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px' }}>
@@ -919,6 +954,7 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
           </tbody>
         </table>
       </div>
+      
       <div style={{ marginTop: '60px', paddingTop: '20px', borderTop: '1px dashed #94a3b8', pageBreakInside: 'avoid' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', textAlign: 'center', fontSize: '14px' }}>
           <div><div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div><div>( .................................................... )</div><div style={{ color: '#334155' }}>ผู้จัดทำรายงาน</div><div style={{ color: '#334155', marginTop: '4px', fontSize: '13px' }}>วันที่ ......... / ......... / .........</div></div>
@@ -926,6 +962,8 @@ function StatsReport({ siteName, siteType, fromLabel, toLabel, stats }: any) {
         </div>
       </div>
       <div style={{ marginTop: '30px', paddingTop: '10px', textAlign: 'center', fontSize: '11px', color: '#64748b', borderTop: '1px solid #cbd5e0' }}>รายงานนี้สร้างโดยระบบ TWT Waste Predict · เทศบาลตำบลท่าวังทอง</div>
+      
+      <PhotoAppendix records={records} />
     </div>
   );
 }
@@ -1023,6 +1061,7 @@ function CalcReport({ siteName, siteType, fromLabel, toLabel, result, records }:
           </tbody>
         </table>
       </div>
+      
       <div className="mt-16 pt-8" style={{ borderTop: '1px dashed #94a3b8', ...keepTogether }}>
         <div className="grid grid-cols-2 gap-16" style={{ fontSize: '15px' }}>
           <div className="text-center"><div style={{ marginBottom: '60px' }}>ลงชื่อ ....................................................</div><div>( .................................................... )</div><div style={{ fontSize: '14px', color: '#334155' }}>ผู้จัดทำรายงาน</div><div style={{ fontSize: '14px', color: '#334155', marginTop: '4px' }}>วันที่ ......... / ......... / .........</div></div>
@@ -1030,6 +1069,8 @@ function CalcReport({ siteName, siteType, fromLabel, toLabel, result, records }:
         </div>
       </div>
       <div className="mt-10 pt-4 text-center" style={{ fontSize: '12px', color: '#64748b', borderTop: '1px solid #cbd5e0' }}>รายงานนี้สร้างโดยระบบ TWT Waste Predict · เทศบาลตำบลท่าวังทอง</div>
+
+      <PhotoAppendix records={records} />
     </div>
   );
 }

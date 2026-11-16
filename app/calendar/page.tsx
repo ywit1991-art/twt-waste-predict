@@ -174,7 +174,7 @@ export default function CalendarPage() {
 
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100/60">
             <label className="flex items-center gap-2 text-label mb-2.5">
-              <Building2 className="w-4 h-4" /> กรองตามสถานที่
+              <Building2 className="w-4 h-4" /> สถานที่
             </label>
             <select
               className="w-full px-4 py-3 text-base font-semibold bg-emerald-50/50 border-2 border-emerald-100 rounded-xl focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-emerald-900"

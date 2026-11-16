@@ -337,7 +337,7 @@ function DataPageInner() {
                   className="w-full px-3.5 py-2.5 text-base font-bold bg-emerald-50/50 border-2 border-emerald-100 rounded-xl focus:outline-none focus:bg-white focus:border-emerald-600 transition-all text-emerald-900"
                 >
                   {/* ⭐ เพิ่มตัวเลือก "ทั้งหมด" */}
-                  <option value="all">📊 ทั้งหมด (ภาพรวม)</option>
+                  <option value="all">📊 ทั้งหมด</option>
                   {sites.map(s => {
                     const t = SITE_TYPES.find(st => st.id === s.type);
                     return <option key={s.id} value={s.id}>{t?.icon || '📍'} {s.name}</option>;

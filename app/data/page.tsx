@@ -48,7 +48,9 @@ function DataPageInner() {
 
   const [sites, setSites] = useState<Site[]>([]);
   const [sitesLoading, setSitesLoading] = useState(true);
-  const [siteId, setSiteId] = useState('');
+  
+  // ⭐ ตั้งค่าเริ่มต้นเป็น 'all' (ทั้งหมด)
+  const [siteId, setSiteId] = useState('all'); 
   const [showManager, setShowManager] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -94,7 +96,7 @@ function DataPageInner() {
     try {
       const data = await fetchSites();
       setSites(data);
-      if (data.length > 0 && !siteId) setSiteId(data[0].id);
+      // ไม่ต้องเซ็ต siteId ที่นี่ เพราะเราตั้ง default เป็น 'all' แล้ว
     } catch (err) {
       console.error(err);
     } finally {
@@ -107,8 +109,9 @@ function DataPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  const isAllSites = siteId === 'all';
   const selectedSite = sites.find(s => s.id === siteId);
-  const siteType = selectedSite
+  const siteType = (!isAllSites && selectedSite)
     ? SITE_TYPES.find(t => t.id === selectedSite.type)
     : null;
 
@@ -123,33 +126,39 @@ function DataPageInner() {
     }
   }, [searchQuery, sites, siteId]);
 
-  // ⭐ 2. ระบบกรองข้อมูล (แก้ให้ฉลาดขึ้น)
+  // ⭐ 2. ระบบกรองข้อมูล (รองรับการเลือกทั้งหมด)
   const filteredRecords = useMemo(() => {
-    if (!selectedSite) return [];
+    if (!isAllSites && !selectedSite) return [];
     const from = new Date(fromYear, fromMonth, 1);
     const to = new Date(toYear, toMonth + 1, 0);
     const query = searchQuery.trim().toLowerCase();
 
     return records
       .filter(r => {
-        // ต้องเป็นข้อมูลของสถานที่ที่ถูกเลือก
-        if (r.site_id !== selectedSite.id) return false;
+        // ถ้าไม่ได้เลือกทั้งหมด ให้กรองตามสถานที่
+        if (!isAllSites && r.site_id !== selectedSite?.id) return false;
 
-        // ต้องอยู่ในช่วงเวลา
+        // กรองตามวันที่
         const d = new Date(r.record_date);
         if (d < from || d > to) return false;
 
-        // ถ้ามีการค้นหา
+        // กรองตามคำค้นหา
         if (query) {
           const userName = r.user_name?.toLowerCase() || '';
           const note = r.note?.toLowerCase() || '';
-          const siteName = selectedSite.name.toLowerCase();
-
-          // ⭐ เช็คว่าคำค้นหาตรงกับชื่อสถานที่ไหม? 
-          // ถ้าตรง ให้แสดงข้อมูลทั้งหมดของสถานที่นี้เลย (ไม่ต้องกรองชื่อคน/โน้ต)
-          // ถ้าไม่ตรง ค่อยกรองหาชื่อคน หรือโน้ต
-          if (!siteName.includes(query) && !userName.includes(query) && !note.includes(query)) {
-            return false;
+          const siteName = selectedSite?.name?.toLowerCase() || '';
+          
+          if (isAllSites) {
+             // ถ้าค้นหาแบบทั้งหมด ให้ค้นหาจากชื่อคน, โน้ต หรือ ชื่อสถานที่ของ record นั้นๆ
+             const recordSite = sites.find(s => s.id === r.site_id);
+             const recSiteName = recordSite?.name?.toLowerCase() || '';
+             if (!recSiteName.includes(query) && !userName.includes(query) && !note.includes(query)) {
+               return false;
+             }
+          } else {
+             if (!siteName.includes(query) && !userName.includes(query) && !note.includes(query)) {
+               return false;
+             }
           }
         }
 
@@ -160,7 +169,7 @@ function DataPageInner() {
           new Date(a.record_date).getTime() -
           new Date(b.record_date).getTime()
       );
-  }, [records, selectedSite, fromMonth, fromYear, toMonth, toYear, searchQuery]);
+  }, [records, selectedSite, isAllSites, fromMonth, fromYear, toMonth, toYear, searchQuery, sites]);
 
   const stats = useMemo(() => {
     if (filteredRecords.length === 0) return null;
@@ -234,14 +243,16 @@ function DataPageInner() {
   }, [filteredRecords]);
 
   const result = useMemo(() => {
-    if (!selectedSite || filteredRecords.length === 0) return null;
+    if (!isAllSites && !selectedSite) return null;
+    if (filteredRecords.length === 0) return null;
+    
     return predict({
       records: filteredRecords,
-      isSchool: siteType?.hasTerm ?? false,
+      isSchool: isAllSites ? false : (siteType?.hasTerm ?? false),
       holidayDays, festivalDays, weekendDays, activityDays, termDays, breakDays
     });
   }, [
-    filteredRecords, siteType?.hasTerm, holidayDays, festivalDays,
+    filteredRecords, selectedSite, isAllSites, siteType?.hasTerm, holidayDays, festivalDays,
     weekendDays, activityDays, termDays, breakDays
   ]);
 
@@ -325,6 +336,8 @@ function DataPageInner() {
                   onChange={e => setSiteId(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-base font-bold bg-emerald-50/50 border-2 border-emerald-100 rounded-xl focus:outline-none focus:bg-white focus:border-emerald-600 transition-all text-emerald-900"
                 >
+                  {/* ⭐ เพิ่มตัวเลือก "ทั้งหมด" */}
+                  <option value="all">📊 ทั้งหมด (ภาพรวม)</option>
                   {sites.map(s => {
                     const t = SITE_TYPES.find(st => st.id === s.type);
                     return <option key={s.id} value={s.id}>{t?.icon || '📍'} {s.name}</option>;
@@ -437,17 +450,17 @@ function DataPageInner() {
                   <div className="text-center"><div className="text-xs font-bold text-emerald-700 mb-1">ความหนาแน่นเฉลี่ย</div><div className="text-number text-emerald-800">{stats.avgDensity.toFixed(1)}<span className="text-sm ml-1">กก./ม³</span></div></div>
                 </div>
               </div>
-              <MonthComparison records={filteredRecords} siteId={selectedSite?.id || ''} />
+              <MonthComparison records={filteredRecords} siteId={isAllSites ? 'all' : (selectedSite?.id || '')} />
             </motion.div>
           )}
 
-          {viewMode === 'collectors' && selectedSite && (
+          {viewMode === 'collectors' && (selectedSite || isAllSites) && (
             <div className="no-print"><CollectorReport records={filteredRecords} sites={sites} /></div>
           )}
 
           {viewMode === 'calc' && result && filteredRecords.length > 0 && (
             <div className="no-print">
-              <CalcView siteName={selectedSite?.name || ''} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} result={result} records={filteredRecords} />
+              <CalcView siteName={isAllSites ? 'ทุกสถานที่ (ภาพรวม)' : (selectedSite?.name || '')} siteType={isAllSites ? 'รวมทุกประเภท' : (siteType?.label || '')} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} result={result} records={filteredRecords} />
             </div>
           )}
 
@@ -461,11 +474,11 @@ function DataPageInner() {
         </section>
       </div>
 
-      {result && selectedSite && (
-        <CalcReport siteName={selectedSite.name} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} result={result} records={filteredRecords} />
+      {result && (selectedSite || isAllSites) && (
+        <CalcReport siteName={isAllSites ? 'ทุกสถานที่ (ภาพรวม)' : (selectedSite?.name || '')} siteType={isAllSites ? 'รวมทุกประเภท' : (siteType?.label || '')} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} result={result} records={filteredRecords} />
       )}
-      {stats && selectedSite && (
-        <StatsReport siteName={selectedSite.name} siteType={siteType?.label || ''} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} stats={stats} records={filteredRecords} />
+      {stats && (selectedSite || isAllSites) && (
+        <StatsReport siteName={isAllSites ? 'ทุกสถานที่ (ภาพรวม)' : (selectedSite?.name || '')} siteType={isAllSites ? 'รวมทุกประเภท' : (siteType?.label || '')} fromLabel={`${MONTHS_TH[fromMonth]} ${fromYear + 543}`} toLabel={`${MONTHS_TH[toMonth]} ${toYear + 543}`} stats={stats} records={filteredRecords} />
       )}
 
       <AnimatePresence>
@@ -504,7 +517,9 @@ function StatMini({ icon, label, value, unit, color }: { icon: React.ReactNode; 
 
 function MonthComparison({ records, siteId }: { records: any[]; siteId: string }) {
   const data = useMemo(() => {
-    const siteRecords = records.filter(r => r.site_id === siteId);
+    // ⭐ ถ้า siteId เป็น 'all' แสดงว่า records ที่ส่งมาคือข้อมูลทั้งหมดอยู่แล้ว ไม่ต้อง filter ซ้ำ
+    const siteRecords = siteId === 'all' ? records : records.filter(r => r.site_id === siteId);
+    
     const byYearMonth: Record<number, Record<number, { count: number; total: number }>> = {};
     const yearsSet = new Set<number>();
     siteRecords.forEach(r => {
